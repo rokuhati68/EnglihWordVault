@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WordVault</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#f7f6f3;--surface:#fff;--border:#e8e5df;--border-dark:#d0ccc3;
+  --text:#1a1916;--muted:#8a857a;--accent:#2c2c2c;--alight:#f0ede8;
+  --danger:#c0392b;--dlight:#fdf0ee;--success:#27ae60;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:230px;min-width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.logo{padding:18px 16px 12px;border-bottom:1px solid var(--border);}
+.logo h1{font-family:'DM Serif Display',serif;font-size:17px;}
+.logo span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.snav{padding:8px 0;border-bottom:1px solid var(--border);}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-left:2px solid transparent;transition:all .15s;user-select:none;}
+.ni:hover{background:var(--alight);color:var(--text);}
+.ni.active{background:var(--alight);color:var(--text);border-left-color:var(--accent);}
+.ni svg{opacity:.55;flex-shrink:0;}
+.ni.active svg{opacity:1;}
+
+/* folder tree */
+.ftree{flex:1;overflow-y:auto;padding:8px 0;}
+.fhdr{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.fhdr button{background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;transition:color .15s;}
+.fhdr button:hover{color:var(--text);}
+
+.frow{display:flex;align-items:center;padding:5px 8px 5px 0;cursor:pointer;font-size:12.5px;color:var(--muted);border-left:2px solid transparent;transition:background .12s,color .12s;user-select:none;position:relative;}
+.frow:hover{background:var(--alight);color:var(--text);}
+.frow.active{background:var(--alight);color:var(--text);border-left-color:var(--accent);}
+.frow.dnd-over-child{background:#e0f0ff !important;border-left-color:#5599cc !important;}
+.frow.dnd-over-before{border-top:2px solid var(--accent);}
+.frow .indent{flex-shrink:0;}
+.frow .chevron{width:14px;font-size:9px;flex-shrink:0;transition:transform .18s;text-align:center;}
+.frow .chevron.open{transform:rotate(90deg);}
+.frow .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.frow .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:5px;}
+.frow .fcnt{font-size:10px;color:var(--muted);margin-right:4px;flex-shrink:0;}
+.frow .fbtns{display:none;gap:2px;flex-shrink:0;margin-right:2px;}
+.frow:hover .fbtns{display:flex;}
+.frow .fbtn{background:none;border:none;cursor:pointer;padding:2px 4px;font-size:10px;border-radius:3px;color:var(--muted);transition:all .12s;}
+.frow .fbtn:hover{background:var(--alight);color:var(--text);}
+.frow .fbtn.del:hover{background:var(--dlight);color:var(--danger);}
+.frow .dh{font-size:11px;color:var(--border-dark);cursor:grab;padding:0 4px 0 8px;flex-shrink:0;}
+.frow:hover .dh{color:var(--muted);}
+.frow.dragging{opacity:.4;}
+.weak-frow{display:flex;align-items:center;gap:6px;padding:5px 8px 5px 16px;cursor:pointer;font-size:12.5px;color:var(--muted);border-left:2px solid transparent;transition:all .12s;}
+.weak-frow:hover{background:var(--alight);color:var(--text);}
+.weak-frow.active{background:var(--alight);color:var(--text);border-left-color:var(--danger);}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.topbar{padding:16px 24px 14px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10;display:flex;align-items:flex-start;gap:10px;flex-shrink:0;}
+.tbL{flex:1;min-width:0;}
+.tbL h2{font-size:15px;font-weight:600;}
+.bc{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;font-size:11px;color:var(--muted);}
+.bcl{cursor:pointer;transition:color .12s;}
+.bcl:hover{color:var(--text);}
+.topbar .acts{display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding-top:2px;}
+.content{padding:22px 24px;flex:1;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;white-space:nowrap;}
+.btn:hover{background:var(--alight);border-color:var(--border-dark);}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-p:hover{background:#3d3d3d;}
+.btn-d{background:var(--danger);color:#fff;border-color:var(--danger);}
+.btn-d:hover{background:#a93226;}
+.btn-s{padding:3px 8px;font-size:11px;}
+
+/* ── FOLDER GRID ── */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;}
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px 13px 11px;cursor:pointer;transition:all .15s;position:relative;}
+.fcard:hover{border-color:var(--border-dark);box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-1px);}
+.fcard-bar{height:3px;border-radius:2px;margin-bottom:10px;}
+.fcard-name{font-size:13px;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fcard-count{font-size:11px;color:var(--muted);}
+.fcard-menu{position:absolute;top:7px;right:7px;opacity:0;display:flex;gap:2px;transition:opacity .12s;}
+.fcard:hover .fcard-menu{opacity:1;}
+.fcard-menu button{background:none;border:none;cursor:pointer;padding:2px 5px;font-size:10px;border-radius:3px;color:var(--muted);transition:all .12s;}
+.fcard-menu button:hover{background:var(--alight);color:var(--text);}
+.fcard-menu button.del:hover{background:var(--dlight);color:var(--danger);}
+
+/* ── WORD LIST ── */
+.wlhdr{display:grid;grid-template-columns:1fr 1fr 1.2fr 100px;padding:5px 10px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);}
+.wrow{display:grid;grid-template-columns:1fr 1fr 1.2fr 100px;padding:9px 10px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s;}
+.wrow:hover{background:var(--alight);}
+.weng{font-weight:500;font-size:13px;}
+.weng.weak::after{content:'★';color:var(--danger);font-size:9px;margin-left:3px;}
+.wjp{font-size:13px;color:var(--muted);}
+.wmemo input{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--muted);outline:none;padding:2px 4px;border-radius:3px;}
+.wmemo input:focus{background:var(--border);color:var(--text);}
+.wacts{display:flex;gap:3px;justify-content:flex-end;}
+.wbtn{padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:inherit;transition:all .12s;font-weight:500;}
+.wbtn:hover{border-color:var(--danger);color:var(--danger);background:var(--dlight);}
+.wbtn.wk{border-color:var(--danger);color:var(--danger);background:var(--dlight);}
+
+/* ── FLASHCARD ── */
+.fc-picker{max-width:480px;}
+.fc-tree{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.fc-frow{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s;font-size:13px;}
+.fc-frow:last-child{border-bottom:none;}
+.fc-frow:hover{background:var(--alight);}
+.fc-frow.selected{background:var(--alight);}
+.fc-frow input[type=checkbox]{cursor:pointer;accent-color:var(--accent);}
+.fc-frow .fdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.fc-frow .findent{flex-shrink:0;}
+.fc-frow .fchev{width:14px;font-size:9px;text-align:center;color:var(--muted);flex-shrink:0;cursor:pointer;}
+.fc-options{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.mode-sel{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.mdbtn{padding:6px 13px;font-family:inherit;font-size:12px;font-weight:500;border:none;background:var(--surface);cursor:pointer;color:var(--muted);transition:all .15s;}
+.mdbtn.on{background:var(--accent);color:#fff;}
+
+.card-area{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.card-counter{font-size:11px;color:var(--muted);}
+.card-wrap{width:min(420px,90vw);cursor:pointer;position:relative;}
+.card-stage{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:transform .18s;text-align:center;position:relative;}
+.card-wrap:active .card-stage{transform:scale(.98);}
+.card-lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.card-word{font-family:'DM Serif Display',serif;font-size:30px;line-height:1.25;}
+.card-hint{font-size:11px;color:var(--muted);margin-top:10px;}
+.card-memo-txt{font-size:12px;color:var(--muted);margin-top:10px;font-style:italic;max-width:340px;line-height:1.5;}
+.card-step-dots{display:flex;gap:6px;justify-content:center;}
+.card-step-dot{width:6px;height:6px;border-radius:50%;background:var(--border-dark);transition:background .2s;}
+.card-step-dot.on{background:var(--accent);}
+.card-nav{display:flex;gap:10px;}
+.card-nav button{padding:7px 18px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:all .15s;}
+.card-nav button:hover{background:var(--alight);}
+
+/* ── UPLOAD ── */
+.ugrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.uarea{border:2px dashed var(--border-dark);border-radius:10px;padding:26px 14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);}
+.uarea:hover,.uarea.dov{border-color:var(--accent);background:var(--alight);}
+.uicon{font-size:26px;margin-bottom:7px;opacity:.4;}
+.uarea p{font-size:11px;color:var(--muted);}
+.uarea strong{color:var(--text);font-size:12px;}
+#upinput{display:none;}
+.proc{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--alight);border-radius:8px;margin-bottom:14px;font-size:13px;}
+.spin{width:15px;height:15px;border:2px solid var(--border-dark);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.exrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);align-items:center;}
+.exrow.hdr{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;}
+.exrow input{border:1px solid transparent;background:transparent;font-family:inherit;font-size:13px;padding:2px 5px;border-radius:4px;outline:none;width:100%;transition:all .12s;}
+.exrow input:focus{border-color:var(--border-dark);background:var(--surface);}
+
+/* ── TEST ── */
+.tsetup{max-width:460px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:10px;font-weight:600;margin-bottom:6px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;}
+.fg select,.fg input[type=number]{width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--surface);outline:none;}
+.fchk{display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;transition:all .12s;margin-bottom:5px;}
+.fchk:hover{background:var(--alight);}
+.fchk.on{border-color:var(--accent);background:var(--alight);}
+.tsheet{max-width:620px;}
+.trow{display:grid;grid-template-columns:1fr 1fr 20px;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);align-items:center;}
+.trow.hdr{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;}
+.tword{font-size:13px;font-weight:500;}
+.tans{border:none;border-bottom:1px solid var(--border-dark);background:transparent;font-family:inherit;font-size:13px;padding:2px 3px;outline:none;width:100%;}
+.tans:focus{border-bottom-color:var(--accent);}
+.tans.ok{border-bottom-color:var(--success);color:var(--success);}
+.tans.ng{border-bottom-color:var(--danger);color:var(--danger);}
+.tscore{padding:14px 18px;border-radius:8px;background:var(--alight);margin-top:18px;display:flex;align-items:center;gap:12px;}
+.tscore-n{font-family:'DM Serif Display',serif;font-size:34px;}
+.tscore-i strong{color:var(--text);display:block;font-size:13px;}
+.tscore-i{font-size:12px;color:var(--muted);}
+
+/* ── MODAL ── */
+.mbk{position:fixed;inset:0;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(2px);}
+.modal{background:var(--surface);border-radius:12px;padding:26px;width:330px;box-shadow:0 12px 40px rgba(0,0,0,.14);}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:14px;}
+.modal input,.modal select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;margin-bottom:10px;background:var(--surface);}
+.modal input:focus,.modal select:focus{border-color:var(--border-dark);}
+.modal-note{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+.macts{display:flex;gap:7px;justify-content:flex-end;}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted);font-size:13px;}
+.empty .ei{font-size:34px;margin-bottom:9px;opacity:.28;}
+
+/* ── BOTTOM NAV ── */
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:50;padding:5px 0 env(safe-area-inset-bottom,5px);}
+.bnav-i{display:flex;justify-content:space-around;}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;cursor:pointer;font-size:9px;color:var(--muted);font-weight:500;border:none;background:none;font-family:inherit;transition:color .12s;-webkit-tap-highlight-color:transparent;}
+.bni svg{opacity:.45;}
+.bni.active{color:var(--accent);}
+.bni.active svg{opacity:1;}
+
+@media print{
+  .sidebar,.topbar,.no-print{display:none!important;}
+  .main{overflow:visible;}
+  .tsheet{max-width:100%;}
+  body{background:#fff;}
+}
+@media(max-width:660px){
+  .sidebar{display:none;}
+  .bnav{display:block;}
+  .main{overflow-y:auto;height:auto;}
+  .app{height:auto;min-height:100vh;overflow:visible;}
+  body{padding-bottom:62px;}
+  .topbar{padding:12px 14px 10px;}
+  .content{padding:14px;}
+  .fgrid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px;}
+  .wlhdr{grid-template-columns:1fr 1fr 90px;}
+  .wlhdr div:nth-child(3){display:none;}
+  .wrow{grid-template-columns:1fr 1fr 90px;}
+  .wmemo{display:none;}
+  .ugrid{grid-template-columns:1fr;}
+  .trow{grid-template-columns:1fr 1fr 16px;gap:5px;}
+  .modal{width:calc(100vw - 36px);}
+}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo"><h1>WordVault</h1><span>英単語学習</span></div>
+  <nav class="snav">
+    <div class="ni active" id="nav-list" onclick="setPage('list')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>単語一覧
+    </div>
+    <div class="ni" id="nav-fc" onclick="setPage('fc')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>単語帳
+    </div>
+    <div class="ni" id="nav-add" onclick="setPage('add')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>写真から追加
+    </div>
+    <div class="ni" id="nav-test" onclick="setPage('test')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>テスト
+    </div>
+  </nav>
+  <div class="ftree">
+    <div class="fhdr">フォルダ<button onclick="openFolderModal(null)" title="新規フォルダ">+</button></div>
+    <div id="ftree-root"></div>
+    <div id="weak-frow"></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="tbL">
+      <div class="bc" id="bc"></div>
+    </div>
+    <div class="acts" id="acts"></div>
+  </div>
+  <div class="content" id="content"></div>
+</main>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <div class="bnav-i">
+    <button class="bni active" id="bnav-list" onclick="setPage('list')">
+      <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>一覧</span>
+    </button>
+    <button class="bni" id="bnav-fc" onclick="setPage('fc')">
+      <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>単語帳</span>
+    </button>
+    <button class="bni" id="bnav-add" onclick="setPage('add')">
+      <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span>追加</span>
+    </button>
+    <button class="bni" id="bnav-test" onclick="setPage('test')">
+      <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>テスト</span>
+    </button>
+  </div>
+</nav>
+
+<!-- FOLDER MODAL -->
+<div class="mbk" id="mf" style="display:none" onclick="closeMF(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="mf-title">新しいフォルダ</h3>
+    <input id="mf-name" type="text" placeholder="フォルダ名..."/>
+    <div id="mf-parent-wrap"></div>
+    <p class="modal-note" id="mf-note"></p>
+    <div class="macts">
+      <button class="btn" onclick="closeMF()">キャンセル</button>
+      <button class="btn btn-p" onclick="confirmFolder()">作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="mbk" id="md" style="display:none" onclick="closeMD(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="md-title">削除の確認</h3>
+    <p id="md-body" style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6"></p>
+    <div class="macts">
+      <button class="btn" onclick="closeMD()">キャンセル</button>
+      <button class="btn btn-d" onclick="confirmDel()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORD EDIT MODAL -->
+<div class="mbk" id="mw" style="display:none" onclick="closeMW(event)">
+  <div class="modal" style="width:380px" onclick="event.stopPropagation()">
+    <h3>単語を編集</h3>
+    <label style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:5px">英語</label>
+    <input id="mw-eng" type="text" placeholder="英語"/>
+    <label style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:5px">日本語</label>
+    <input id="mw-jp" type="text" placeholder="日本語"/>
+    <label style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:5px">メモ（改行OK）</label>
+    <textarea id="mw-memo" placeholder="メモ..." rows="4"
+      style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;resize:vertical;line-height:1.6;margin-bottom:14px;background:var(--surface)"></textarea>
+    <div class="macts">
+      <button class="btn" onclick="closeMW()">キャンセル</button>
+      <button class="btn btn-p" onclick="confirmWordEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════
+//  DATA
+// ══════════════════════════════
+const COLS=['#6c8ebf','#82b366','#b5735a','#9b72b0','#d4a843','#5a9b8e','#c45b7a','#e08050'];
+let D = JSON.parse(localStorage.getItem('wv4')||'null') || {folders:[],words:[]};
+// folder: {id, name, color, parentId|null, order}
+// word:   {id, folderId, eng, jp, memo, weak}
+function save(){localStorage.setItem('wv4',JSON.stringify(D));}
+
+// ══════════════════════════════
+//  STATE
+// ══════════════════════════════
+let page='list';
+let listFid=null;       // current folder in list
+let fcState=null;       // {words, mode, idx, step, withSub} — null=picker
+let testState=null;
+let extractedWords=[];
+let camStream=null, camFacing='environment';
+let delTarget=null;
+let mfCtx=null;         // {parentId, fromAdd}
+let openFolders=new Set(); // expanded in sidebar tree
+let dragSrc=null;       // {id, parentId}
+let dropTarget=null;    // {id, mode:'before'|'child'}
+
+// ══════════════════════════════
+//  HELPERS
+// ══════════════════════════════
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const uid=()=>'id'+Date.now()+Math.floor(Math.random()*9999);
+const shuffle=a=>[...a].sort(()=>Math.random()-.5);
+const fById=id=>D.folders.find(f=>f.id===id);
+const childrenOf=pid=>D.folders.filter(f=>f.parentId===pid).sort((a,b)=>(a.order||0)-(b.order||0));
+function collectIds(fid){const ids=[fid];childrenOf(fid).forEach(c=>ids.push(...collectIds(c.id)));return ids;}
+function wordsIn(fid,rec=false){
+  if(fid==='weak') return D.words.filter(w=>w.weak);
+  if(!fid) return D.words;
+  const ids=rec?collectIds(fid):[fid];
+  return D.words.filter(w=>ids.includes(w.folderId));
+}
+function totalCnt(fid){return wordsIn(fid,true).length;}
+function folderPath(fid){
+  const p=[];let id=fid;
+  while(id){const f=fById(id);if(!f)break;p.unshift(f);id=f.parentId||null;}
+  return p;
+}
+function allFlat(exId=null){
+  const res=[];
+  function walk(pid,d){childrenOf(pid).forEach(f=>{if(f.id===exId)return;res.push({...f,depth:d});walk(f.id,d+1);});}
+  walk(null,0);return res;
+}
+function reorder(pid){
+  childrenOf(pid).forEach((f,i)=>{const x=D.folders.find(x=>x.id===f.id);if(x)x.order=i;});
+}
+
+// ══════════════════════════════
+//  NAV
+// ══════════════════════════════
+function setPage(p){
+  stopCam();
+  page=p;
+  ['list','fc','add','test'].forEach(x=>{
+    document.getElementById('nav-'+x)?.classList.toggle('active',x===p);
+    document.getElementById('bnav-'+x)?.classList.toggle('active',x===p);
+  });
+  if(p==='list') listFid=null;
+  if(p==='fc') fcState=null;
+  if(p==='test') testState=null;
+  renderPage();
+}
+
+// ══════════════════════════════
+//  SIDEBAR TREE
+// ══════════════════════════════
+function renderSidebar(){
+  renderTree();
+  const wc=D.words.filter(w=>w.weak).length;
+  document.getElementById('weak-frow').innerHTML=`
+    <div class="weak-frow ${listFid==='weak'&&page==='list'?'active':''}" onclick="openList('weak')">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--danger);flex-shrink:0"></div>
+      <span style="flex:1;font-size:12.5px">苦手単語</span>
+      <span style="font-size:10px;color:var(--muted);margin-right:6px">${wc}</span>
+    </div>`;
+}
+
+function renderTree(pid=null,el=null){
+  if(!el) el=document.getElementById('ftree-root');
+  if(!pid) el.innerHTML='';
+  const children=childrenOf(pid);
+  children.forEach(f=>{
+    const open=openFolders.has(f.id);
+    const hasCh=childrenOf(f.id).length>0;
+    const cnt=totalCnt(f.id);
+    const depth=folderPath(f.id).length-1;
+    const row=document.createElement('div');
+    row.className='frow'+(listFid===f.id&&page==='list'?' active':'');
+    row.dataset.id=f.id;
+    row.draggable=true;
+    row.innerHTML=`
+      <span class="dh">⠿</span>
+      <span class="indent" style="width:${depth*14}px"></span>
+      <span class="chevron${open?' open':''}" onclick="event.stopPropagation();toggleOpen('${f.id}')">${hasCh?'▶':''}</span>
+      <span class="dot" style="background:${f.color}"></span>
+      <span class="fname">${esc(f.name)}</span>
+      <div class="fbtns">
+        <button class="fbtn" onclick="event.stopPropagation();openFolderModal('${f.id}')" title="サブフォルダ">+</button>
+        <button class="fbtn del" onclick="event.stopPropagation();askDelFolder('${f.id}')" title="削除">✕</button>
+      </div>
+      <span class="fcnt">${cnt}</span>`;
+    row.onclick=()=>openList(f.id);
+    // DnD
+    row.addEventListener('dragstart',e=>{dragSrc={id:f.id,parentId:f.parentId||null};row.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    row.addEventListener('dragend',()=>{row.classList.remove('dragging');clearDnd();});
+    row.addEventListener('dragover',e=>{
+      if(!dragSrc||dragSrc.id===f.id)return;
+      e.preventDefault();
+      clearDnd();
+      const r=row.getBoundingClientRect();
+      const y=e.clientY-r.top;
+      const pct=y/r.height;
+      // hover middle => child, top/bottom => before
+      if(pct>0.25&&pct<0.75){
+        row.classList.add('dnd-over-child');
+        dropTarget={id:f.id,mode:'child'};
+      } else if(pct<=0.25){
+        row.classList.add('dnd-over-before');
+        dropTarget={id:f.id,mode:'before'};
+      } else {
+        row.classList.add('dnd-over-before');
+        dropTarget={id:f.id,mode:'after'};
+      }
+    });
+    row.addEventListener('dragleave',()=>{row.classList.remove('dnd-over-child','dnd-over-before');});
+    row.addEventListener('drop',e=>{e.preventDefault();applyDrop(f.id);});
+    el.appendChild(row);
+    if(open&&hasCh){
+      const sub=document.createElement('div');
+      el.appendChild(sub);
+      renderTree(f.id,sub);
+    }
+  });
+}
+
+function toggleOpen(id){
+  if(openFolders.has(id)) openFolders.delete(id); else openFolders.add(id);
+  renderSidebar();
+}
+
+function clearDnd(){
+  document.querySelectorAll('.dnd-over-child,.dnd-over-before').forEach(el=>{el.classList.remove('dnd-over-child','dnd-over-before');});
+}
+
+function applyDrop(targetId){
+  if(!dragSrc||!dropTarget) return;
+  clearDnd();
+  const src=D.folders.find(f=>f.id===dragSrc.id);
+  if(!src) return;
+  // prevent dropping into own descendant
+  if(collectIds(dragSrc.id).includes(targetId)){dragSrc=null;dropTarget=null;return;}
+  const tgt=D.folders.find(f=>f.id===targetId);
+  if(!tgt) return;
+
+  if(dropTarget.mode==='child'){
+    src.parentId=targetId;
+    openFolders.add(targetId);
+    reorder(targetId);
+  } else {
+    // before or after → same parent as target
+    src.parentId=tgt.parentId||null;
+    const siblings=childrenOf(tgt.parentId||null);
+    const tidx=siblings.findIndex(f=>f.id===targetId);
+    // remove src from list, insert
+    const others=D.folders.filter(f=>f.id!==src.id&&f.parentId===src.parentId);
+    // re-assign order
+    const fresh=childrenOf(tgt.parentId||null).filter(f=>f.id!==src.id);
+    const insertAt=dropTarget.mode==='before'?tidx:tidx+1;
+    fresh.splice(Math.max(0,insertAt-(fresh.length<siblings.length?0:1)),0,src);
+    fresh.forEach((f,i)=>{const x=D.folders.find(x=>x.id===f.id);if(x)x.order=i;});
+  }
+  save();
+  dragSrc=null;dropTarget=null;
+  renderSidebar();
+  if(page==='list') renderPage();
+}
+
+// ══════════════════════════════
+//  RENDER ROUTER
+// ══════════════════════════════
+function renderPage(){
+  renderSidebar();
+  document.getElementById('acts').innerHTML='';
+  document.getElementById('bc').innerHTML='';
+  if(page==='list')      renderList();
+  else if(page==='fc')   renderFC();
+  else if(page==='add')  renderAdd();
+  else if(page==='test') renderTest();
+}
+
+// ══════════════════════════════
+//  LIST PAGE
+// ══════════════════════════════
+function openList(fid){
+  page='list';
+  listFid=fid;
+  ['list','fc','add','test'].forEach(x=>{
+    document.getElementById('nav-'+x)?.classList.toggle('active',x==='list');
+    document.getElementById('bnav-'+x)?.classList.toggle('active',x==='list');
+  });
+  renderPage();
+}
+
+function renderList(){
+  const acts=document.getElementById('acts');
+  const el=document.getElementById('content');
+  const bc=document.getElementById('bc');
+
+  if(listFid){
+    const isWeak=listFid==='weak';
+    const folder=isWeak?{id:'weak',name:'苦手単語',color:'#c0392b'}:fById(listFid);
+    const words=wordsIn(listFid,false);
+    const subs=isWeak?[]:childrenOf(listFid);
+
+    // breadcrumb
+    if(!isWeak){
+      const path=folderPath(listFid);
+      bc.innerHTML=[
+        `<span class="bcl" onclick="listFid=null;renderPage()">ホーム</span>`,
+        ...path.map((f,i)=>i<path.length-1
+          ?`<span style="opacity:.4">›</span><span class="bcl" onclick="openList('${f.id}')">${esc(f.name)}</span>`
+          :`<span style="opacity:.4">›</span><span style="color:var(--text);font-weight:600">${esc(f.name)}</span>`)
+      ].join('');
+    } else {
+      bc.innerHTML=`<span class="bcl" onclick="listFid=null;renderPage()">ホーム</span><span style="opacity:.4">›</span><span style="color:var(--text);font-weight:600">苦手単語</span>`;
+    }
+
+    acts.innerHTML=`<span style="font-size:11px;color:var(--muted)">${words.length}語</span>`
+      +((!isWeak&&!fById(listFid)?.parentId)?`<button class="btn btn-s" onclick="openFolderModal('${listFid}')">＋サブフォルダ</button>`:'');
+
+    let html='';
+    if(subs.length) html+=`<div class="fgrid" style="margin-bottom:18px">${subs.map(folderCardHTML).join('')}</div>`;
+    if(!words.length&&!subs.length){
+      html+=`<div class="empty"><div class="ei">📂</div>単語がまだありません。</div>`;
+    } else if(words.length){
+      html+=`<div class="wlhdr"><div>英語</div><div>日本語</div><div>メモ</div><div></div></div>
+        ${words.map(w=>`
+          <div class="wrow" onclick="openWordEdit('${w.id}')" style="cursor:pointer" title="クリックして編集">
+            <div class="weng ${w.weak?'weak':''}">${esc(w.eng)}</div>
+            <div class="wjp">${esc(w.jp)}</div>
+            <div class="wmemo" style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.memo||'')}</div>
+            <div class="wacts" onclick="event.stopPropagation()">
+              <button class="wbtn ${w.weak?'wk':''}" onclick="toggleWeak('${w.id}')">${w.weak?'★':'☆'}苦手</button>
+              <button class="wbtn" onclick="askDelWord('${w.id}')" style="color:var(--muted)">✕</button>
+            </div>
+          </div>`).join('')}`;
+    }
+    el.innerHTML=html;
+    return;
+  }
+
+  // ── top level ──
+  bc.innerHTML=`<span style="color:var(--text);font-weight:600;font-size:15px">単語一覧</span>`;
+  acts.innerHTML=`<button class="btn btn-p" onclick="openFolderModal(null)">＋ フォルダ</button>`;
+  const tops=childrenOf(null);
+  const wc=D.words.filter(w=>w.weak).length;
+  if(!tops.length&&!wc){
+    el.innerHTML=`<div class="empty"><div class="ei">📚</div>フォルダがありません。<br>「＋ フォルダ」から作成しましょう。</div>`;
+    return;
+  }
+  el.innerHTML=`<div class="fgrid">
+    ${tops.map(folderCardHTML).join('')}
+    <div class="fcard" onclick="openList('weak')">
+      <div class="fcard-bar" style="background:var(--danger)"></div>
+      <div class="fcard-name">★ 苦手単語</div>
+      <div class="fcard-count">${wc}語</div>
+    </div>
+  </div>`;
+}
+
+function folderCardHTML(f){
+  const cnt=totalCnt(f.id);
+  const sc=childrenOf(f.id).length;
+  const isTop=!f.parentId;
+  return `<div class="fcard" onclick="openList('${f.id}')">
+    <div class="fcard-bar" style="background:${f.color}"></div>
+    <div class="fcard-menu">
+      ${isTop?`<button onclick="event.stopPropagation();openFolderModal('${f.id}')" title="サブフォルダ">＋</button>`:''}
+      <button class="del" onclick="event.stopPropagation();askDelFolder('${f.id}')" title="削除">✕</button>
+    </div>
+    <div class="fcard-name">${esc(f.name)}</div>
+    <div class="fcard-count">${cnt}語${sc?` · ${sc}フォルダ`:''}</div>
+  </div>`;
+}
+
+let editWordId = null;
+function openWordEdit(id){
+  const w = D.words.find(w=>w.id===id);
+  if(!w) return;
+  editWordId = id;
+  document.getElementById('mw-eng').value = w.eng;
+  document.getElementById('mw-jp').value = w.jp;
+  document.getElementById('mw-memo').value = w.memo || '';
+  document.getElementById('mw').style.display = 'flex';
+  setTimeout(()=>document.getElementById('mw-jp').focus(), 50);
+}
+function confirmWordEdit(){
+  const w = D.words.find(w=>w.id===editWordId);
+  if(!w) return;
+  w.eng  = document.getElementById('mw-eng').value.trim() || w.eng;
+  w.jp   = document.getElementById('mw-jp').value.trim()  || w.jp;
+  w.memo = document.getElementById('mw-memo').value;
+  save();
+  closeMW();
+  renderPage();
+}
+function closeMW(e){
+  if(e && e.target !== document.getElementById('mw')) return;
+  document.getElementById('mw').style.display = 'none';
+  editWordId = null;
+}
+function toggleWeak(id){const w=D.words.find(w=>w.id===id);if(!w)return;w.weak=!w.weak;save();renderPage();}
+
+// ══════════════════════════════
+//  FLASHCARD
+// ══════════════════════════════
+function renderFC(){
+  const el=document.getElementById('content');
+  const acts=document.getElementById('acts');
+  const bc=document.getElementById('bc');
+  bc.innerHTML=`<span style="color:var(--text);font-weight:600;font-size:15px">単語帳</span>`;
+  acts.innerHTML='';
+
+  if(fcState){
+    renderCardPlay(el,acts,bc);
+    return;
+  }
+  // ── folder picker ──
+  acts.innerHTML='';
+  const flat=allFlat();
+  const wc=D.words.filter(w=>w.weak).length;
+  const openedPicker=new Set();
+
+  el.innerHTML=`
+    <div class="fc-picker">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">フォルダを選んでスタート</p>
+      <div class="fc-tree" id="fc-tree-wrap"></div>
+      <div class="fc-options">
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="fc-rec" style="accent-color:var(--accent)"> サブフォルダも含める
+        </label>
+      </div>
+      <div class="fc-options">
+        <div class="mode-sel">
+          <button class="mdbtn on" id="md-en" onclick="setFcMode('en-jp')">英→日</button>
+          <button class="mdbtn" id="md-jp" onclick="setFcMode('jp-en')">日→英</button>
+        </div>
+      </div>
+      <button class="btn btn-p" id="fc-start" onclick="startFC()" disabled style="opacity:.4">▶ スタート</button>
+    </div>
+  `;
+
+  function renderPickerTree(pid=null,wrap=null){
+    if(!wrap) wrap=document.getElementById('fc-tree-wrap');
+    childrenOf(pid).forEach(f=>{
+      const hasCh=childrenOf(f.id).length>0;
+      const open=openedPicker.has(f.id);
+      const cnt=totalCnt(f.id);
+      const depth=folderPath(f.id).length-1;
+      const row=document.createElement('div');
+      row.className='fc-frow';
+      row.dataset.id=f.id;
+      row.innerHTML=`
+        <span class="findent" style="width:${depth*16}px"></span>
+        <span class="fchev" onclick="event.stopPropagation();togglePickerFolder('${f.id}')">${hasCh?(open?'▾':'▸'):''}</span>
+        <input type="checkbox" value="${f.id}" onchange="updateFCStart()">
+        <span class="fdot" style="background:${f.color}"></span>
+        <span style="flex:1">${esc(f.name)}</span>
+        <span style="font-size:11px;color:var(--muted)">${cnt}語</span>`;
+      wrap.appendChild(row);
+      if(hasCh&&open){const sub=document.createElement('div');wrap.appendChild(sub);renderPickerTree(f.id,sub);}
+    });
+    if(!pid&&wc){
+      const row=document.createElement('div');
+      row.className='fc-frow';
+      row.innerHTML=`<span class="findent" style="width:0px"></span><span class="fchev"></span><input type="checkbox" value="weak" onchange="updateFCStart()"><span class="fdot" style="background:var(--danger)"></span><span style="flex:1">★ 苦手単語</span><span style="font-size:11px;color:var(--muted)">${wc}語</span>`;
+      wrap.appendChild(row);
+    }
+  }
+  renderPickerTree();
+
+  window._togglePickerFolder=function(id){
+    if(openedPicker.has(id))openedPicker.delete(id);else openedPicker.add(id);
+    document.getElementById('fc-tree-wrap').innerHTML='';
+    renderPickerTree();
+  };
+  window._fcMode='en-jp';
+}
+
+function togglePickerFolder(id){window._togglePickerFolder&&window._togglePickerFolder(id);}
+function setFcMode(m){
+  window._fcMode=m;
+  document.getElementById('md-en')?.classList.toggle('on',m==='en-jp');
+  document.getElementById('md-jp')?.classList.toggle('on',m==='jp-en');
+}
+function updateFCStart(){
+  const checked=document.querySelectorAll('#fc-tree-wrap input[type=checkbox]:checked').length>0;
+  const btn=document.getElementById('fc-start');
+  if(btn){btn.disabled=!checked;btn.style.opacity=checked?'1':'.4';}
+}
+
+function startFC(){
+  const rec=document.getElementById('fc-rec')?.checked||false;
+  const mode=window._fcMode||'en-jp';
+  const fids=Array.from(document.querySelectorAll('#fc-tree-wrap input[type=checkbox]:checked')).map(i=>i.value);
+  let pool=[];
+  fids.forEach(fid=>{pool.push(...wordsIn(fid,rec));});
+  const seen=new Set();pool=pool.filter(w=>{if(seen.has(w.id))return false;seen.add(w.id);return true;});
+  if(!pool.length){alert('選択されたフォルダに単語がありません');return;}
+  pool=shuffle(pool);
+  fcState={words:pool,mode,idx:0,step:0}; // step: 0=front,1=back,2=memo
+  renderPage();
+}
+
+function renderCardPlay(el,acts,bc){
+  const{words,mode,idx,step}=fcState;
+  const w=words[idx];
+  bc.innerHTML=`<span style="color:var(--text);font-weight:600;font-size:15px">単語帳</span>`;
+  acts.innerHTML=`<button class="btn btn-s" onclick="fcState=null;renderPage()">← フォルダ選択</button>`;
+
+  const front=mode==='en-jp'?w.eng:w.jp;
+  const back=mode==='en-jp'?w.jp:w.eng;
+  const frontL=mode==='en-jp'?'English':'日本語';
+  const backL=mode==='en-jp'?'日本語':'English';
+
+  let stageHTML='';
+  if(step===0){
+    stageHTML=`<div class="card-lbl">${frontL}</div>
+      <div class="card-word">${esc(front)}</div>
+      <div class="card-hint">タップして答えを表示</div>`;
+  } else if(step===1){
+    stageHTML=`<div class="card-lbl">${backL}</div>
+      <div class="card-word">${esc(back)}</div>
+      ${w.memo?`<div class="card-hint">タップでメモを表示</div>`:`<div class="card-hint">タップで次へ</div>`}`;
+  } else {
+    const memoHtml = w.memo
+      ? w.memo.split('\n').map(line=>esc(line)).join('<br>')
+      : '';
+    stageHTML=`<div class="card-lbl">メモ</div>
+      ${memoHtml?`<div class="card-memo-txt">${memoHtml}</div>`:`<div style="font-size:13px;color:var(--muted)">メモなし</div>`}
+      <div class="card-hint" style="margin-top:14px">タップで次へ</div>`;
+  }
+
+  const dots=[0,1,2].map(i=>`<div class="card-step-dot ${i<=step?'on':''}"></div>`).join('');
+
+  el.innerHTML=`
+    <div class="card-area">
+      <div class="card-counter">${idx+1} / ${words.length}</div>
+      <div class="card-wrap" onclick="advanceCard()">
+        <div class="card-stage">${stageHTML}</div>
+      </div>
+      <div class="card-step-dots">${dots}</div>
+      <div class="card-nav">
+        <button onclick="prevCard()">← 前へ</button>
+        <button onclick="nextCard()">次へ →</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:2px">スペースで進む · ←→で移動</p>
+    </div>`;
+
+  if(step===0&&mode==='en-jp') speak(w.eng);
+  if(step===1&&mode==='jp-en') speak(w.eng);
+}
+
+function advanceCard(){
+  const{words,idx,step}=fcState;
+  const w=words[idx];
+  const hasMemo=!!(w.memo&&w.memo.trim());
+  if(step===0){fcState.step=1;}
+  else if(step===1&&hasMemo){fcState.step=2;}
+  else{nextCard();return;}
+  renderPage();
+}
+
+function nextCard(){
+  const{words}=fcState;
+  fcState.idx=(fcState.idx+1)%words.length;
+  fcState.step=0;
+  renderPage();
+}
+function prevCard(){
+  const{words}=fcState;
+  fcState.idx=(fcState.idx-1+words.length)%words.length;
+  fcState.step=0;
+  renderPage();
+}
+function speak(t){
+  if(!('speechSynthesis'in window))return;
+  const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=0.9;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+
+// ══════════════════════════════
+//  ADD PAGE
+// ══════════════════════════════
+function renderAdd(){
+  const el=document.getElementById('content');
+  const bc=document.getElementById('bc');
+  bc.innerHTML=`<span style="color:var(--text);font-weight:600;font-size:15px">写真から追加</span>`;
+  const flat=allFlat();
+  const defId=listFid&&listFid!=='weak'?listFid:(flat[0]?.id||'');
+  const opts=flat.map(f=>`<option value="${f.id}" ${f.id===defId?'selected':''}>${'　'.repeat(f.depth)}${esc(f.name)}</option>`).join('');
+
+  el.innerHTML=`
+    <div style="max-width:540px">
+      <div class="fg">
+        <label>追加先フォルダ</label>
+        <div style="display:flex;gap:7px;align-items:center">
+          <select id="tgt" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--surface);outline:none">
+            ${opts||'<option value="">（フォルダなし）</option>'}
+          </select>
+          <button class="btn btn-s" onclick="openFolderModal(null,true)">＋ フォルダ作成</button>
+        </div>
+      </div>
+      <div class="ugrid">
+        <div class="uarea" id="ua" onclick="document.getElementById('upinput').click()">
+          <div class="uicon">🖼️</div><p><strong>写真を選択</strong></p><p style="margin-top:3px">ファイルまたはD&amp;D</p>
+          <input type="file" id="upinput" accept="image/*" onchange="handleUp(event)"/>
+        </div>
+        <div class="uarea" id="cam-btn" onclick="openCam()">
+          <div class="uicon">📷</div><p><strong>その場で撮影</strong></p><p style="margin-top:3px">カメラを起動</p>
+        </div>
+      </div>
+      <div id="cam-view" style="display:none;margin-bottom:14px">
+        <div style="position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3">
+          <video id="cam-video" autoplay playsinline style="width:100%;height:100%;object-fit:cover;display:block"></video>
+          <canvas id="cam-canvas" style="display:none"></canvas>
+        </div>
+        <div style="display:flex;gap:7px;margin-top:8px;justify-content:center">
+          <button class="btn" onclick="stopCam();showCamBtns()">キャンセル</button>
+          <button class="btn btn-p" onclick="capture()" style="padding:9px 24px">📸 撮影</button>
+          <button class="btn" onclick="switchCam()">🔄</button>
+        </div>
+      </div>
+      <div id="cap-preview" style="display:none;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+          <p style="font-size:13px;font-weight:600">撮影した写真</p>
+          <button class="btn btn-s" onclick="retake()">撮り直す</button>
+        </div>
+        <img id="cap-img" style="width:100%;border-radius:8px;border:1px solid var(--border)"/>
+      </div>
+      <div id="proc-area"></div>
+      <div id="ex-area"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px">または手動で追加</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input id="meng" placeholder="英語" style="padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none"/>
+        <input id="mjp" placeholder="日本語" style="padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none"/>
+      </div>
+      <input id="mmemo" placeholder="メモ（任意）" style="width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;margin-bottom:8px"/>
+      <button class="btn btn-p" onclick="addManual()">追加</button>
+    </div>`;
+
+  const ua=document.getElementById('ua');
+  ua.addEventListener('dragover',e=>{e.preventDefault();ua.classList.add('dov');});
+  ua.addEventListener('dragleave',()=>ua.classList.remove('dov'));
+  ua.addEventListener('drop',e=>{e.preventDefault();ua.classList.remove('dov');handleFile(e.dataTransfer.files[0]);});
+}
+
+function showCamBtns(){document.getElementById('cam-btn').style.display='';document.getElementById('ua').style.display='';}
+function addManual(){
+  const eng=document.getElementById('meng').value.trim();
+  const jp=document.getElementById('mjp').value.trim();
+  const memo=document.getElementById('mmemo')?.value.trim()||'';
+  const fid=document.getElementById('tgt')?.value;
+  if(!eng||!jp){alert('英語と日本語を入力してください');return;}
+  D.words.push({id:uid(),folderId:fid,eng,jp,memo,weak:false});
+  save();
+  document.getElementById('meng').value='';document.getElementById('mjp').value='';
+  if(document.getElementById('mmemo'))document.getElementById('mmemo').value='';
+  showToast('追加しました！');
+}
+
+async function handleUp(e){const f=e.target.files[0];if(f)handleFile(f);}
+async function handleFile(file){
+  if(!file)return;
+  const proc=document.getElementById('proc-area');
+  const extr=document.getElementById('ex-area');
+  if(!proc)return;
+  proc.innerHTML=`<div class="proc"><div class="spin"></div>AIが単語を認識中...</div>`;
+  extr.innerHTML='';
+  const b64=await toB64(file);
+  const mt=file.type||'image/jpeg';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mt,data:b64}},
+          {type:'text',text:'この単語帳の画像から英語・日本語の単語ペアを全て抽出してください。メモ欄や備考があればmemoフィールドに入れてください。JSONのみ返してください。形式: {"words":[{"eng":"apple","jp":"りんご","memo":""},...]}'}
+        ]}]})
+    });
+    const d=await r.json();
+    const txt=d.content?.map(c=>c.text||'').join('')||'';
+    const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    extractedWords=parsed.words||[];
+    proc.innerHTML='';
+    renderExtracted(extr);
+  }catch(e){
+    proc.innerHTML=`<div style="color:var(--danger);font-size:13px;padding:10px">認識に失敗しました。</div>`;
+  }
+}
+
+function renderExtracted(c){
+  if(!extractedWords.length){c.innerHTML=`<div class="empty"><div class="ei">🔍</div>単語が見つかりませんでした。</div>`;return;}
+  c.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <p style="font-size:13px;font-weight:600">${extractedWords.length}語を認識しました</p>
+      <button class="btn btn-p btn-s" onclick="saveExtracted()">すべて保存</button>
+    </div>
+    <div>
+      <div class="exrow hdr"><div>英語</div><div>日本語</div></div>
+      ${extractedWords.map((w,i)=>`<div class="exrow">
+        <input value="${esc(w.eng)}" onchange="extractedWords[${i}].eng=this.value" placeholder="英語"/>
+        <input value="${esc(w.jp)}" onchange="extractedWords[${i}].jp=this.value" placeholder="日本語"/>
+      </div>`).join('')}
+    </div>`;
+}
+
+function saveExtracted(){
+  const fid=document.getElementById('tgt')?.value;
+  let cnt=0;
+  extractedWords.forEach(w=>{if(w.eng&&w.jp){D.words.push({id:uid(),folderId:fid,eng:w.eng,jp:w.jp,memo:w.memo||'',weak:false});cnt++;}});
+  save();extractedWords=[];
+  document.getElementById('ex-area').innerHTML='';
+  document.getElementById('proc-area').innerHTML='';
+  document.getElementById('cap-preview').style.display='none';
+  showToast(`${cnt}語を保存しました！`);
+}
+
+function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
+
+// camera
+async function openCam(){
+  try{
+    stopCam();
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:camFacing,width:{ideal:1920},height:{ideal:1080}}});
+    document.getElementById('cam-video').srcObject=camStream;
+    document.getElementById('cam-view').style.display='block';
+    document.getElementById('cam-btn').style.display='none';
+    document.getElementById('ua').style.display='none';
+  }catch{alert('カメラへのアクセスが拒否されました。');}
+}
+async function switchCam(){camFacing=camFacing==='environment'?'user':'environment';await openCam();}
+function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}camFacing='environment';}
+function capture(){
+  const v=document.getElementById('cam-video'),cv=document.getElementById('cam-canvas');
+  if(!v||!cv)return;
+  cv.width=v.videoWidth;cv.height=v.videoHeight;
+  cv.getContext('2d').drawImage(v,0,0);
+  document.getElementById('cap-img').src=cv.toDataURL('image/jpeg',.92);
+  document.getElementById('cap-preview').style.display='block';
+  document.getElementById('cam-view').style.display='none';
+  showCamBtns();
+  stopCam();
+  cv.toBlob(b=>handleFile(new File([b],'cap.jpg',{type:'image/jpeg'})),'image/jpeg',.92);
+}
+function retake(){
+  document.getElementById('cap-preview').style.display='none';
+  document.getElementById('proc-area').innerHTML='';
+  document.getElementById('ex-area').innerHTML='';
+  extractedWords=[];
+}
+
+// ══════════════════════════════
+//  TEST PAGE
+// ══════════════════════════════
+const testTreeOpen = new Set();
+
+function renderTest(){
+  const el=document.getElementById('content');
+  const bc=document.getElementById('bc');
+  bc.innerHTML=`<span style="color:var(--text);font-weight:600;font-size:15px">テスト</span>`;
+  if(testState){renderTestSheet(el);return;}
+  document.getElementById('acts').innerHTML='';
+  const wc=D.words.filter(w=>w.weak).length;
+  el.innerHTML=`
+    <div class="tsetup">
+      <div class="fg">
+        <label>テスト範囲（フォルダ）</label>
+        <div id="tchks"></div>
+      </div>
+      <div class="fg"><label>サブフォルダも含める</label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="trec" style="accent-color:var(--accent)"> はい
+        </label>
+      </div>
+      <div class="fg"><label>出題数</label><input type="number" id="tcnt" min="1" value="10"/></div>
+      <div class="fg"><label>テスト形式</label>
+        <select id="ttype"><option value="en-jp">英語 → 日本語</option><option value="jp-en">日本語 → 英語</option></select>
+      </div>
+      <div class="fg"><label>採点方法</label>
+        <select id="tscore"><option value="auto">自動採点（AI）</option><option value="self">自己採点（プリント用）</option></select>
+      </div>
+      <button class="btn btn-p" onclick="startTest()">テスト開始</button>
+    </div>`;
+  renderTestTree();
+}
+
+function renderTestTree(pid=null, container=null){
+  const wrap = container || document.getElementById('tchks');
+  if(!container) wrap.innerHTML='';
+  const folders = childrenOf(pid);
+  folders.forEach(f=>{
+    const hasCh = childrenOf(f.id).length > 0;
+    const open = testTreeOpen.has(f.id);
+    const cnt = totalCnt(f.id);
+    const depth = pid === null ? 0 : folderPath(f.id).length - 1;
+
+    const row = document.createElement('div');
+    row.style.cssText=`display:flex;align-items:center;gap:7px;padding:7px 10px 7px ${8+depth*16}px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;transition:background .12s;margin-bottom:4px;`;
+    row.innerHTML=`
+      <span style="width:14px;font-size:10px;color:var(--muted);flex-shrink:0;text-align:center;cursor:pointer" onclick="event.stopPropagation();toggleTestFolder('${f.id}')">${hasCh?(open?'▾':'▸'):''}</span>
+      <input type="checkbox" value="${f.id}" style="cursor:pointer;accent-color:var(--accent)" onchange="this.closest('div').style.background=this.checked?'var(--alight)':'';"/>
+      <div style="width:7px;height:7px;border-radius:50%;background:${f.color};flex-shrink:0"></div>
+      <span style="flex:1">${esc(f.name)}</span>
+      <span style="color:var(--muted);font-size:11px">${cnt}語</span>`;
+    wrap.appendChild(row);
+
+    if(hasCh && open){
+      const sub = document.createElement('div');
+      wrap.appendChild(sub);
+      renderTestTree(f.id, sub);
+    }
+  });
+
+  // 苦手フォルダはトップレベルのみ
+  if(pid === null){
+    const wc = D.words.filter(w=>w.weak).length;
+    if(wc){
+      const row = document.createElement('div');
+      row.style.cssText=`display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;transition:background .12s;margin-bottom:4px;`;
+      row.innerHTML=`
+        <span style="width:14px;flex-shrink:0"></span>
+        <input type="checkbox" value="weak" style="cursor:pointer;accent-color:var(--accent)" onchange="this.closest('div').style.background=this.checked?'var(--alight)':'';"/>
+        <div style="width:7px;height:7px;border-radius:50%;background:var(--danger);flex-shrink:0"></div>
+        <span style="flex:1">★ 苦手単語</span>
+        <span style="color:var(--muted);font-size:11px">${wc}語</span>`;
+      wrap.appendChild(row);
+    }
+  }
+}
+
+function toggleTestFolder(id){
+  if(testTreeOpen.has(id)) testTreeOpen.delete(id); else testTreeOpen.add(id);
+  renderTestTree();
+}
+
+function startTest(){
+  const fids=Array.from(document.querySelectorAll('#tchks input:checked')).map(i=>i.value);
+  if(!fids.length){alert('フォルダを選択してください');return;}
+  const rec=document.getElementById('trec')?.checked||false;
+  const cnt=parseInt(document.getElementById('tcnt').value)||10;
+  const type=document.getElementById('ttype').value;
+  const scoreType=document.getElementById('tscore').value;
+  let pool=[];
+  fids.forEach(fid=>pool.push(...wordsIn(fid,rec)));
+  const seen=new Set();pool=pool.filter(w=>{if(seen.has(w.id))return false;seen.add(w.id);return true;});
+  pool=shuffle(pool).slice(0,Math.min(cnt,pool.length));
+  testState={words:pool,type,scoreType,answers:pool.map(()=>''),scored:false,results:[]};
+  renderPage();
+}
+
+function renderTestSheet(el){
+  const{words,type,scoreType,answers,scored,results}=testState;
+  const acts=document.getElementById('acts');
+  acts.innerHTML=`
+    <button class="btn no-print" onclick="testState=null;renderPage()">← 設定</button>
+    ${!scored?`<button class="btn btn-p no-print" onclick="scoreTest()">採点する</button>`:''}
+    ${scored||scoreType==='self'?`<button class="btn no-print" onclick="window.print()">🖨 印刷</button>`:''}`;
+  el.innerHTML=`
+    <div class="tsheet">
+      <div style="margin-bottom:18px"><h3 style="font-size:14px;font-weight:600">テスト — ${words.length}問</h3></div>
+      <div class="trow hdr"><div>${type==='en-jp'?'英語':'日本語'}</div><div>${type==='en-jp'?'日本語（回答）':'英語（回答）'}</div><div></div></div>
+      ${words.map((w,i)=>{
+        const q=type==='en-jp'?w.eng:w.jp;
+        const ok=results[i]?.correct;
+        const cls=!scored?'':(ok?'ok':'ng');
+        return`<div class="trow">
+          <div class="tword">${esc(q)}</div>
+          <input class="tans ${cls}" id="ans-${i}" value="${esc(answers[i])}" ${scored?'readonly':''}
+            onchange="testState.answers[${i}]=this.value" placeholder="回答..."/>
+          <div style="text-align:center;font-size:13px">${scored?(ok?'✅':'❌'):''}</div>
+        </div>`;
+      }).join('')}
+      <div id="score-area"></div>
+    </div>`;
+  if(scored){
+    const ok=results.filter(r=>r.correct).length;
+    document.getElementById('score-area').innerHTML=`
+      <div class="tscore">
+        <div class="tscore-n">${ok}/${words.length}</div>
+        <div class="tscore-i"><strong>${Math.round(ok/words.length*100)}点</strong>不正解${words.length-ok}語を苦手単語に追加しました</div>
+      </div>`;
+  }
+}
+
+async function scoreTest(){
+  const{words,type,answers,scoreType}=testState;
+  if(scoreType==='self'){testState.results=words.map(()=>({correct:null}));testState.scored=true;renderPage();return;}
+  const sa=document.getElementById('score-area');
+  if(sa)sa.innerHTML=`<div class="proc" style="margin-top:14px"><div class="spin"></div>AIが採点中...</div>`;
+  const pairs=words.map((w,i)=>({question:type==='en-jp'?w.eng:w.jp,correct_answer:type==='en-jp'?w.jp:w.eng,user_answer:answers[i]||''}));
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        messages:[{role:'user',content:`英語テストを採点してください。表記揺れは正解扱い。JSONのみ: {"results":[{"correct":true},...]}
+問題: ${JSON.stringify(pairs)}`}]})
+    });
+    const d=await r.json();
+    testState.results=JSON.parse(d.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim()).results||words.map(()=>({correct:false}));
+  }catch{
+    testState.results=words.map((w,i)=>({correct:(answers[i]||'').trim().toLowerCase()===(type==='en-jp'?w.jp:w.eng).trim().toLowerCase()}));
+  }
+  testState.results.forEach((r,i)=>{if(!r.correct){const w=D.words.find(x=>x.id===words[i].id);if(w)w.weak=true;}});
+  save();testState.scored=true;renderPage();
+}
+
+// ══════════════════════════════
+//  FOLDER MODAL
+// ══════════════════════════════
+function openFolderModal(parentId,fromAdd=false){
+  mfCtx={parentId,fromAdd};
+  const pf=parentId?fById(parentId):null;
+  document.getElementById('mf-title').textContent=parentId?'サブフォルダを作成':'新しいフォルダ';
+  document.getElementById('mf-name').value='';
+  document.getElementById('mf-note').textContent=pf?`「${pf.name}」の中に作成します`:'';
+
+  if(fromAdd){
+    const tops=childrenOf(null);
+    document.getElementById('mf-parent-wrap').innerHTML=`
+      <select id="mf-psel" style="margin-bottom:10px">
+        <option value="">なし（トップレベル）</option>
+        ${tops.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}
+      </select>`;
+    document.getElementById('mf-note').textContent='';
+  } else {
+    document.getElementById('mf-parent-wrap').innerHTML='';
+  }
+  document.getElementById('mf').style.display='flex';
+  setTimeout(()=>document.getElementById('mf-name').focus(),50);
+}
+
+function confirmFolder(){
+  const name=document.getElementById('mf-name').value.trim();if(!name)return;
+  let pid=mfCtx?.parentId||null;
+  if(mfCtx?.fromAdd){const s=document.getElementById('mf-psel');pid=s?s.value||null:null;}
+  const color=COLS[D.folders.length%COLS.length];
+  const nf={id:uid(),name,color,parentId:pid||null,order:childrenOf(pid||null).length};
+  D.folders.push(nf);save();
+  closeMF();
+  if(page==='add'){renderAdd();setTimeout(()=>{const s=document.getElementById('tgt');if(s)s.value=nf.id;},50);}
+  else renderPage();
+}
+function closeMF(e){if(e&&e.target!==document.getElementById('mf'))return;document.getElementById('mf').style.display='none';}
+
+// ══════════════════════════════
+//  DELETE
+// ══════════════════════════════
+function askDelFolder(id){
+  const f=fById(id);if(!f)return;
+  const wc=wordsIn(id,true).length,sc=childrenOf(id).length;
+  delTarget={type:'folder',id};
+  document.getElementById('md-title').textContent=`「${f.name}」を削除`;
+  let b=`このフォルダを削除します。`;
+  if(wc||sc)b+=`<br><br>含まれる内容：<strong>${wc}語</strong>${sc?`・<strong>${sc}サブフォルダ</strong>`:''}`;
+  b+=`<br><br>削除すると元に戻せません。`;
+  document.getElementById('md-body').innerHTML=b;
+  document.getElementById('md').style.display='flex';
+}
+function askDelWord(id){
+  const w=D.words.find(w=>w.id===id);if(!w)return;
+  delTarget={type:'word',id};
+  document.getElementById('md-title').textContent='単語を削除';
+  document.getElementById('md-body').innerHTML=`「<strong>${esc(w.eng)}</strong>」を削除します。`;
+  document.getElementById('md').style.display='flex';
+}
+function confirmDel(){
+  if(!delTarget)return;
+  if(delTarget.type==='folder'){
+    const ids=collectIds(delTarget.id);
+    D.words=D.words.filter(w=>!ids.includes(w.folderId));
+    D.folders=D.folders.filter(f=>!ids.includes(f.id));
+    if(listFid&&ids.includes(listFid))listFid=null;
+    showToast('フォルダを削除しました');
+  } else {
+    D.words=D.words.filter(w=>w.id!==delTarget.id);
+    showToast('単語を削除しました');
+  }
+  delTarget=null;save();closeMD();renderPage();
+}
+function closeMD(e){if(e&&e.target!==document.getElementById('md'))return;document.getElementById('md').style.display='none';}
+
+// ══════════════════════════════
+//  UTILS
+// ══════════════════════════════
+function showToast(msg){
+  const t=document.createElement('div');t.textContent=msg;
+  Object.assign(t.style,{position:'fixed',bottom:'76px',left:'50%',transform:'translateX(-50%)',
+    background:'#1a1916',color:'#fff',padding:'9px 18px',borderRadius:'8px',
+    fontSize:'12px',zIndex:'999',opacity:'1',transition:'opacity .3s',whiteSpace:'nowrap'});
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2200);
+}
+
+document.addEventListener('keydown',e=>{
+  if(fcState){
+    if(e.key==='ArrowRight')nextCard();
+    else if(e.key==='ArrowLeft')prevCard();
+    else if(e.key===' '){e.preventDefault();advanceCard();}
+  }
+});
+document.getElementById('mf-name').addEventListener('keydown',e=>{if(e.key==='Enter')confirmFolder();});
+['mw-eng','mw-jp'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')confirmWordEdit();});
+});
+
+// ══════════════════════════════
+//  INIT
+// ══════════════════════════════
+renderPage();
+</script>
+</body>
+</html>
